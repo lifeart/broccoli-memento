@@ -18,6 +18,30 @@ var watcher = chokidar.watch([], {ignored: /(^|[\/\\])\../}).on('all', (event, p
   }
 });
 
+const pathDiv = '/';
+
+function tokenize(path) {
+  return path.split(pathDiv);
+}
+
+const fsMap = {};
+
+function isFile(tokenizedArray) {
+  return !!tokenizedArray[tokenizedArray.length - 1].split('.')[1];
+}
+
+function toMap(tokenizedArray) {
+  let isPath = !isFile(tokenizedArray);
+  let result = tokenizedArray.reduse((pathPart, prevToken)=>{
+    if (!pathPart[prevToken]) {
+      pathPart[prevToken] = {};
+    }
+    return pathPart[prevToken];
+  }, fsMap)
+  if (!isPath) {
+    result = true;
+  }
+}
 
 const hash = new Map();
 const alias = new Map();
@@ -56,6 +80,22 @@ const loadFileToMemoryMap = function(fsPath) {
   return file;
 }
 
+const dirLinks = [];
+
+function createDirSymlink(src, dest) {
+  dirLinks.push([src, dest]);
+}
+
+function resolvePath(token) {
+  let symlinkResults = token.reduse((results, tokenPart)=>{
+    return dirLinks.filter(([from, to])=>{
+      return from.includes(tokenPart) || to.includes(tokenPart);
+    });
+  },[]);
+  if (symlinkResults.length) {
+    console.log('found', symlinkResults);
+  }
+}
 
 // mfs.writeFileSync('/hello.txt', 'World!');
 // mfs.readFileSync('/hello.txt', 'utf8'); // World!
